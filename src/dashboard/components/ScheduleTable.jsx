@@ -229,10 +229,7 @@ function ScheduleTable() {
     const data = {
       id: dialogMode === "create" ? null : schedule.id,
       formatNo: schedule.formatNo,
-      scheduleKbn:
-        schedule.formatNo === "202"
-          ? schedule.scheduleKbn.substring(2)
-          : schedule.scheduleKbn,
+      scheduleKbn: schedule.scheduleKbn,
       scheduleId: schedule.scheduleId,
       powerPlantId: schedule.powerPlantId,
     };
