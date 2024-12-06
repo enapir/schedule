@@ -1,3 +1,6 @@
+export const DATA_MODE_PRODUCTION = "production";
+export const DATA_MODE_TEST = "test";
+
 export const FORMAT_NO_LIST = [
   {
     value: "201",

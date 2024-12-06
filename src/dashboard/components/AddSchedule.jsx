@@ -14,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -25,26 +26,46 @@ import {
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { FORMAT_NO_LIST } from "../../data/master";
+import {
+  DATA_MODE_PRODUCTION,
+  DATA_MODE_TEST,
+  FORMAT_NO_LIST,
+} from "../../data/master";
 import { cn } from "../../lib/utils";
 import { MonthPicker } from "../schedule/components/MonthPicker";
 
 function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
   const [formData, setFormData] = useState(data);
+  const [dataMode, setDataMode] = useState(
+    data.dataMode || DATA_MODE_PRODUCTION
+  );
   const [formatNo, setFormatNo] = useState(data.formatNo || "");
-  const [scheduleKbn, setScheduleKbn] = useState(data.scheduleKbn || "");
+  const [scheduleKbn, setScheduleKbn] = useState();
+  const [scheduleKbnFree, setScheduleKbnFree] = useState();
   const [scheduleId, setScheduleId] = useState(data.scheduleId || "");
   const [powerPlantId, setPowerPlantId] = useState(data.powerPlantId || "");
 
   useEffect(() => {
     setFormData(data);
     setFormatNo(data.formatNo || "");
-    setScheduleKbn(
-      data.formatNo === "202" ? "20" + data.scheduleKbn : data.scheduleKbn || ""
-    );
+    setDataMode(data.dataMode);
+    if (data.dataMode === DATA_MODE_PRODUCTION) {
+      setScheduleKbn(
+        data.formatNo === "202"
+          ? "20" + data.scheduleKbn
+          : data.scheduleKbn || ""
+      );
+    } else {
+      setScheduleKbnFree(data.scheduleKbn);
+    }
     setScheduleId(data.scheduleId || "");
     setPowerPlantId(data.powerPlantId || "");
   }, [data]);
+
+  const handleDataModeChange = (dataMode) => {
+    setDataMode(dataMode);
+    setFormData({ ...formData, dataMode: dataMode });
+  };
 
   const handleFormatNoChange = (formatNo) => {
     setFormatNo(formatNo);
@@ -69,6 +90,12 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
     const yymm = format(value, "yyyyMM");
     setScheduleKbn(yymm);
     setFormData({ ...formData, scheduleKbn: yymm });
+  };
+
+  const handleScheduleKbnFreeChange = (e) => {
+    const scheduleKbnFree = e.target.value;
+    setScheduleKbnFree(scheduleKbnFree);
+    setFormData({ ...formData, scheduleKbn: scheduleKbnFree });
   };
 
   const handleScheduleIdChange = (e) => {
@@ -101,6 +128,27 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">データモード</Label>
+              <RadioGroup
+                value={dataMode}
+                className="flex col-span-3"
+                onValueChange={handleDataModeChange}
+                disabled={mode === "edit"}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem
+                    value={DATA_MODE_PRODUCTION}
+                    id={DATA_MODE_PRODUCTION}
+                  />
+                  <Label htmlFor={DATA_MODE_PRODUCTION}>本番</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={DATA_MODE_TEST} id={DATA_MODE_TEST} />
+                  <Label htmlFor={DATA_MODE_TEST}>テスト</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="formatNo" className="text-right">
                 フォーマットＮｏ
               </Label>
@@ -125,80 +173,97 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="scheduleKbn" className="text-right">
-                スケジュール区分
-              </Label>
-              {formatNo === "201" ? (
-                <Select
-                  name="scheduleKbn"
-                  value={scheduleKbn}
-                  onValueChange={handleScheduleKbnChange}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="スケジュール区分を選択してください" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {Array.from({ length: 10 }, (_, index) => index).map(
-                        (flag) => (
-                          <SelectItem value={"999" + flag} key={"999" + flag}>
-                            {"999" + flag}
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              ) : null}
-              {formatNo === "202" ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "col-span-3 w-full justify-start text-left font-normal",
-                        !scheduleKbn && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {scheduleKbn ? (
-                        `${scheduleKbn.substring(
-                          0,
-                          4
-                        )}年${scheduleKbn.substring(4, 6)}月`
-                      ) : (
-                        <span>年月を選択してください</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <MonthPicker
-                      onMonthSelect={(date) => handleScheduleKbn202Change(date)}
-                      selectedMonthStr={scheduleKbn}
-                      minDate={new Date(new Date().getFullYear() - 5, 0)}
-                      maxDate={new Date(new Date().getFullYear() + 5, 11)}
-                    />
-                  </PopoverContent>
-                </Popover>
-              ) : null}
-              {formatNo === "203" ? (
+            {dataMode === DATA_MODE_PRODUCTION ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="scheduleKbn" className="text-right">
+                  スケジュール区分
+                </Label>
+                {formatNo === "201" ? (
+                  <Select
+                    name="scheduleKbn"
+                    value={scheduleKbn}
+                    onValueChange={handleScheduleKbnChange}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="スケジュール区分を選択してください" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {Array.from({ length: 10 }, (_, index) => index).map(
+                          (flag) => (
+                            <SelectItem value={"999" + flag} key={"999" + flag}>
+                              {"999" + flag}
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                ) : null}
+                {formatNo === "202" ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "col-span-3 w-full justify-start text-left font-normal",
+                          !scheduleKbn && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {scheduleKbn ? (
+                          `${scheduleKbn.substring(
+                            0,
+                            4
+                          )}年${scheduleKbn.substring(4, 6)}月`
+                        ) : (
+                          <span>年月を選択してください</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <MonthPicker
+                        onMonthSelect={(date) =>
+                          handleScheduleKbn202Change(date)
+                        }
+                        selectedMonthStr={scheduleKbn}
+                        minDate={new Date(new Date().getFullYear() - 5, 0)}
+                        maxDate={new Date(new Date().getFullYear() + 5, 11)}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                ) : null}
+                {formatNo === "203" ? (
+                  <Input
+                    name="scheduleKbn"
+                    className="col-span-3"
+                    value="0000"
+                    disabled={true}
+                  />
+                ) : null}
+                {formatNo === "301" ? (
+                  <Input
+                    name="scheduleKbn"
+                    className="col-span-3"
+                    value="8888"
+                    disabled={true}
+                  />
+                ) : null}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="scheduleKbnFree" className="text-right">
+                  スケジュール区分
+                </Label>
                 <Input
-                  name="scheduleKbn"
-                  className="col-span-3"
-                  value="0000"
-                  disabled={true}
+                  maxLength="6"
+                  name="scheduleKbnFree"
+                  className="my-2 col-span-3"
+                  value={scheduleKbnFree}
+                  onChange={handleScheduleKbnFreeChange}
                 />
-              ) : null}
-              {formatNo === "301" ? (
-                <Input
-                  name="scheduleKbn"
-                  className="col-span-3"
-                  value="8888"
-                  disabled={true}
-                />
-              ) : null}
-            </div>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="scheduleId" className="text-right">
                 スケジュールID

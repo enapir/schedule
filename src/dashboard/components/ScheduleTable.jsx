@@ -40,13 +40,15 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import GlobalApi from "../../../service/GlobalApi";
-import AddSchedule from "./AddSchedule";
-import { DataTablePagination } from "./DataTablePagination";
+import { DATA_MODE_PRODUCTION, DATA_MODE_TEST } from "../../data/master";
 import {
+  cn,
   getCurrentTime,
   getFullFormatNo,
   getFullPowerPlantId,
 } from "../../lib/utils";
+import AddSchedule from "./AddSchedule";
+import { DataTablePagination } from "./DataTablePagination";
 
 function ScheduleTable() {
   const navigation = useNavigate();
@@ -70,6 +72,23 @@ function ScheduleTable() {
       header: "＃",
       cell: ({ row }) => {
         return <div>{row.index + 1}</div>;
+      },
+    },
+    {
+      accessorKey: "dataMode",
+      header: "データモード",
+      cell: ({ row }) => {
+        return (
+          <div
+            className={cn(
+              "font-bold",
+              row.getValue("dataMode") === DATA_MODE_TEST ? "text-gray-400" : ""
+            )}
+            style={{ textTransform: "uppercase" }}
+          >
+            {row.getValue("dataMode")}
+          </div>
+        );
       },
     },
     {
@@ -184,6 +203,7 @@ function ScheduleTable() {
       if (resp.data.success) {
         const scheduleList = resp.data.data?.records?.map((schedule) => ({
           id: schedule.id,
+          dataMode: schedule.dataMode,
           formatNo: getFullFormatNo(schedule.formatNo),
           scheduleKbn: schedule.scheduleKbn,
           scheduleId: schedule.scheduleId,
@@ -200,7 +220,7 @@ function ScheduleTable() {
 
   const openCreateDialog = () => {
     setDialogMode("create");
-    setDialogData({ formatNo: "201" });
+    setDialogData({ dataMode: DATA_MODE_PRODUCTION, formatNo: "201" });
     setIsDialogOpen(true);
   };
 
@@ -208,6 +228,7 @@ function ScheduleTable() {
     setDialogMode("edit");
     const formData = {
       id: row.id,
+      dataMode: row.dataMode,
       formatNo: row.formatNo.substring(0, 3),
       scheduleKbn: row.scheduleKbn,
       scheduleId: row.scheduleId,
@@ -228,6 +249,7 @@ function ScheduleTable() {
     setLoading(true);
     const data = {
       id: dialogMode === "create" ? null : schedule.id,
+      dataMode: schedule.dataMode,
       formatNo: schedule.formatNo,
       scheduleKbn: schedule.scheduleKbn,
       scheduleId: schedule.scheduleId,
