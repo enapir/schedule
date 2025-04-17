@@ -30,9 +30,19 @@ import {
   DATA_MODE_PRODUCTION,
   DATA_MODE_TEST,
   FORMAT_NO_LIST,
+  REGISTER_CONFIRM_RESULT_LIST,
 } from "../../data/master";
 import { cn } from "../../lib/utils";
 import { MonthPicker } from "../schedule/components/MonthPicker";
+
+const generateRandomString = (length) => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+};
 
 function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
   const [formData, setFormData] = useState(data);
@@ -44,6 +54,9 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
   const [scheduleKbnFree, setScheduleKbnFree] = useState();
   const [scheduleId, setScheduleId] = useState(data.scheduleId || "");
   const [powerPlantId, setPowerPlantId] = useState(data.powerPlantId || "");
+  const [registerConfirmResult, setRegisterConfirmResult] = useState(
+    data.registerConfirmResult || ""
+  );
 
   useEffect(() => {
     setFormData(data);
@@ -60,6 +73,7 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
     }
     setScheduleId(data.scheduleId || "");
     setPowerPlantId(data.powerPlantId || "");
+    setRegisterConfirmResult(data.registerConfirmResult || "");
   }, [data]);
 
   const handleDataModeChange = (dataMode) => {
@@ -72,6 +86,8 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
     let newKbn = null;
     if (formatNo === "203") {
       newKbn = "0000";
+    } else if (formatNo === "301") {
+      newKbn = "8888";
     } else {
       newKbn = "";
     }
@@ -112,7 +128,15 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
     setFormData({ ...formData, powerPlantId: value });
   };
 
+  const handleRegisterConfirmResultChange = (registerConfirmResult) => {
+    setRegisterConfirmResult(registerConfirmResult);
+    setFormData({ ...formData, registerConfirmResult: registerConfirmResult });
+  };
+
   const handleSave = () => {
+    if (formatNo === "301") {
+      formData.scheduleId = generateRandomString(10);
+    }
     onSave(formData);
   };
 
@@ -264,18 +288,20 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
                 />
               </div>
             )}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="scheduleId" className="text-right">
-                スケジュールID
-              </Label>
-              <Input
-                maxLength="10"
-                name="scheduleId"
-                className="my-2 col-span-3"
-                value={scheduleId}
-                onChange={handleScheduleIdChange}
-              />
-            </div>
+            {formatNo !== "301" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="scheduleId" className="text-right">
+                  スケジュールID
+                </Label>
+                <Input
+                  maxLength="10"
+                  name="scheduleId"
+                  className="my-2 col-span-3"
+                  value={scheduleId}
+                  onChange={handleScheduleIdChange}
+                />
+              </div>
+            ) : null}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="powerPlantId" className="text-right">
                 発電所ID
@@ -288,6 +314,33 @@ function AddSchedule({ isOpen, mode, data, onSave, onClose }) {
                 onChange={handlePowerPlantIdChange}
               />
             </div>
+            {formatNo === "301" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="registerConfirmResult" className="text-right">
+                  登録確認結果
+                </Label>
+                <Select
+                  name="registerConfirmResult"
+                  value={registerConfirmResult}
+                  onValueChange={handleRegisterConfirmResultChange}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="登録確認結果を選択してください" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {REGISTER_CONFIRM_RESULT_LIST.filter((format) => !format.disabled).map(
+                        (format) => (
+                          <SelectItem value={format.value} key={format.value}>
+                            {format.label}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
           <DialogFooter>
             <div className="flex justify-end gap-5">

@@ -111,9 +111,13 @@ function ScheduleTable() {
       accessorKey: "controlTimeStart",
       header: "制御年月日時分（開始）",
     },
+    // {
+    //   accessorKey: "controlCount",
+    //   header: "制御済みデータ数",
+    // },
     {
-      accessorKey: "controlCount",
-      header: "制御済みデータ数",
+      accessorKey: "registerConfirmResult",
+      header: "登録確認結果",
     },
     {
       id: "actions",
@@ -137,19 +141,22 @@ function ScheduleTable() {
               >
                 基本情報変更
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  navigation("/dashboard/schedule/" + schedule.id + "/edit")
-                }
-              >
-                出力制御率設定
-              </DropdownMenuItem>
+              {schedule.formatNo.substring(0, 3) !== "301" ? (
+                <DropdownMenuItem
+                  onClick={() =>
+                    navigation("/dashboard/schedule/" + schedule.id + "/edit")
+                  }
+                >
+                  出力制御率設定
+                </DropdownMenuItem>
+              ) : null}
               {(schedule.formatNo.substring(0, 3) === "201" &&
                 schedule.controlCount === 13) ||
               (schedule.formatNo.substring(0, 3) === "202" &&
                 schedule.controlCount === 1) ||
               (schedule.formatNo.substring(0, 3) === "203" &&
-                schedule.controlCount === 1) ? (
+                schedule.controlCount === 1) ||
+              schedule.formatNo.substring(0, 3) === "301" ? (
                 <DropdownMenuItem
                   onClick={() => {
                     setScheduleId(schedule.id);
@@ -206,10 +213,13 @@ function ScheduleTable() {
           dataMode: schedule.dataMode,
           formatNo: getFullFormatNo(schedule.formatNo),
           scheduleKbn: schedule.scheduleKbn,
-          scheduleId: schedule.scheduleId,
+          scheduleId: schedule.formatNo === "301" ? "-" : schedule.scheduleId,
           powerPlantId: getFullPowerPlantId(schedule.powerPlantId),
-          controlTimeStart: schedule.controlTimeStart,
-          controlCount: schedule.controlCount,
+          controlTimeStart:
+            schedule.formatNo === "301" ? "-" : schedule.controlTimeStart,
+          controlCount:
+            schedule.formatNo === "301" ? "-" : schedule.controlCount,
+          registerConfirmResult: schedule.registerConfirmResult,
         }));
         setData(scheduleList);
       } else {
@@ -233,6 +243,7 @@ function ScheduleTable() {
       scheduleKbn: row.scheduleKbn,
       scheduleId: row.scheduleId,
       powerPlantId: row.powerPlantId.replace(/-/g, ""),
+      registerConfirmResult: row.registerConfirmResult,
     };
     setDialogData(formData);
     setSelectedRow(formData);
@@ -254,6 +265,7 @@ function ScheduleTable() {
       scheduleKbn: schedule.scheduleKbn,
       scheduleId: schedule.scheduleId,
       powerPlantId: schedule.powerPlantId,
+      registerConfirmResult: schedule.registerConfirmResult,
     };
 
     GlobalApi.SaveSchedule(data).then(
@@ -262,7 +274,7 @@ function ScheduleTable() {
         setDialogData({});
         setIsDialogOpen(false);
         if (resp?.data?.success) {
-          if (dialogMode === "create") {
+          if (dialogMode === "create" && data.formatNo !== "301") {
             navigation("/dashboard/schedule/" + resp.data.data.id + "/edit");
           } else {
             getScheduleList();

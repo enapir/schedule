@@ -20,6 +20,17 @@ export const FORMAT_NO_LIST = [
   {
     value: "301",
     label: "ID登録確認結果",
-    disabled: true,
+    // disabled: true,
+  },
+];
+
+export const REGISTER_CONFIRM_RESULT_LIST = [
+  {
+    value: "0",
+    label: "0 : ID登録済み",
+  },
+  {
+    value: "1",
+    label: "1 : ID未登録",
   },
 ];
