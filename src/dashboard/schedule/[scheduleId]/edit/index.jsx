@@ -81,6 +81,7 @@ function EditSchedule() {
   }, [scheduleInfo]);
 
   const GetScheduleInfo = () => {
+    setLoading(true);
     GlobalApi.GetSchedule(scheduleId).then(
       (resp) => {
         const schedule = resp.data.data;
@@ -89,10 +90,48 @@ function EditSchedule() {
           toast("指定するスケジュールが存在しません。");
         } else {
           setScheduleInfo(schedule);
+          // controlRatesを再設定
+          if (schedule.schedule?.formatNo === "203") {
+            const controlTime = schedule.scheduleDetailList[0]?.controlTime;
+            if (controlTime) {
+              const startDay = controlTime.substring(0, 8);
+              let allRates = generateCalendarDataByDay(startDay);
+              if (schedule.scheduleDetailList) {
+                const scheduleDetail = schedule.scheduleDetailList[0];
+                if (scheduleDetail?.controlTime) {
+                  allRates = mergeRatesIntoDates(
+                    allRates,
+                    scheduleDetail?.controlTime,
+                    scheduleDetail?.controlRates.split(",")
+                  );
+                }
+              }
+              setControlRates(allRates);
+            }
+          } else {
+            const controlTime = schedule.scheduleDetailList[0]?.controlTime;
+            if (controlTime) {
+              const startMonth = controlTime.substring(0, 6);
+              const allRates = generateCalendarData(
+                startMonth,
+                schedule.schedule?.formatNo === "201" ? 13 : 1
+              );
+              schedule.scheduleDetailList?.forEach((scheduleDetail) => {
+                if (scheduleDetail.controlTime in allRates) {
+                  allRates[scheduleDetail.controlTime] = convertToCalendarData(
+                    scheduleDetail.controlRates.split(","),
+                    scheduleDetail.controlTime
+                  );
+                }
+              });
+              setControlRates(allRates);
+            }
+          }
         }
+        setLoading(false);
       },
       (error) => {
-        Ï;
+        setLoading(false);
         toast("スケジュールを取得失敗しました。");
       }
     );
@@ -356,6 +395,48 @@ function EditSchedule() {
   };
 
   const [expandedMonth, setExpandedMonth] = useState(0);
+  const [bulkRateValue, setBulkRateValue] = useState("");
+
+  const handleBulkRateChange = (e) => {
+    const value = e.target.value;
+    if (value === "" || (value >= 1 && value <= 100)) {
+      setBulkRateValue(value);
+    }
+  };
+
+  const handleBulkSet = () => {
+    if (!bulkRateValue || bulkRateValue < 1 || bulkRateValue > 100) {
+      toast("1から100の間の数値を入力してください");
+      return;
+    }
+
+    setControlRates((prevData) => {
+      const newData = { ...prevData };
+      Object.keys(newData).forEach((monthKey) => {
+        newData[monthKey].forEach((dayData) => {
+          if (dayData && dayData.timeSlots) {
+            dayData.timeSlots = dayData.timeSlots.map(() => bulkRateValue);
+          }
+        });
+      });
+      return newData;
+    });
+  };
+
+  const handleClearRates = () => {
+    setControlRates((prevData) => {
+      const newData = { ...prevData };
+      Object.keys(newData).forEach((monthKey) => {
+        newData[monthKey].forEach((dayData) => {
+          if (dayData && dayData.timeSlots) {
+            dayData.timeSlots = dayData.timeSlots.map(() => "");
+          }
+        });
+      });
+      return newData;
+    });
+  };
+
   const ControlRatesCalendarInput = ({
     calendarData,
     handleControlRateChange,
@@ -476,12 +557,23 @@ function EditSchedule() {
           {getControlRateLabel(scheduleInfo?.schedule?.formatNo)}
           の出力制御率を追加してください
         </h2>
-        <Button
-          disabled={loading || Object.keys(controlRates).length === 0}
-          onClick={onSave}
-        >
-          {loading ? <LoaderCircle className="animate-spin" /> : "一括保存"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={GetScheduleInfo}
+            disabled={loading}
+            className="min-w-[100px]"
+          >
+            {loading ? <LoaderCircle className="animate-spin" /> : "リフレッシュ"}
+          </Button>
+          <Button
+            disabled={loading || Object.keys(controlRates).length === 0}
+            onClick={onSave}
+            className="min-w-[100px]"
+          >
+            {loading ? <LoaderCircle className="animate-spin" /> : "一括保存"}
+          </Button>
+        </div>
       </div>
 
       <div className="my-4 sticky top-12 z-10">
@@ -599,9 +691,11 @@ function EditSchedule() {
                 <span className="border-l py-2">
                   {scheduleInfo?.schedule?.scheduleId}
                 </span>
-                <span className="border-l py-2">
-                  {getFullPowerPlantId(scheduleInfo?.schedule?.powerPlantId)}
-                </span>
+                <div className="border-l py-2">
+                  <span>
+                    {getFullPowerPlantId(scheduleInfo?.schedule?.powerPlantId)}
+                  </span>
+                </div>
               </div>
             </>
           )}
@@ -609,6 +703,35 @@ function EditSchedule() {
       </div>
 
       <div className="w-full p-4 overflow-y-scroll h-[calc(100vh-14rem)]">
+        <div className="flex justify-end mb-4">
+          {(scheduleInfo?.schedule?.formatNo === "201" || scheduleInfo?.schedule?.formatNo === "202") && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="1"
+                max="100"
+                value={bulkRateValue}
+                onChange={handleBulkRateChange}
+                className="w-20"
+                placeholder="1-100"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkSet}
+              >
+                一括設定
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearRates}
+              >
+                クリア
+              </Button>
+            </div>
+          )}
+        </div>
         <ControlRatesCalendarInput
           calendarData={controlRates}
           handleControlRateChange={handleControlRateChange}
