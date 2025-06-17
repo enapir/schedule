@@ -59,6 +59,7 @@ function ScheduleTable() {
   const [openAlert, setOpenAlert] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [scheduleId, setScheduleId] = React.useState();
+  const [requestStop, setRequestStop] = React.useState("0");
 
   const [data, setData] = React.useState([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -203,6 +204,7 @@ function ScheduleTable() {
 
   React.useEffect(() => {
     getScheduleList();
+    getSettings();
   }, []);
 
   const getScheduleList = () => {
@@ -224,6 +226,24 @@ function ScheduleTable() {
         setData(scheduleList);
       } else {
         setData([]);
+      }
+    });
+  };
+
+  const getSettings = () => {
+    GlobalApi.GetSettings().then((resp) => {
+      if (resp.data.success) {
+        setRequestStop(resp.data.data.requestStop);
+      }
+    });
+  };
+
+  const handleRequestStopChange = () => {
+    const newValue = requestStop === "1" ? "0" : "1";
+    GlobalApi.SaveSettings({ requestStop: newValue }).then((resp) => {
+      if (resp.data.success) {
+        setRequestStop(newValue);
+        toast(newValue === "1" ? "発電所からの要求を停止しました" : "発電所からの要求を有効にしました");
       }
     });
   };
@@ -350,6 +370,13 @@ function ScheduleTable() {
         onClose={onCloseDialog}
       />
       <div className="flex items-center justify-end pb-2">
+        <Button 
+          variant="outline" 
+          className="mr-2"
+          onClick={handleRequestStopChange}
+        >
+          {requestStop === "1" ? "発電所からの要求を有効にする" : "発電所からの要求を停止する"}
+        </Button>
         <Button className="mr-2" onClick={openCreateDialog}>
           スケジュール作成
         </Button>

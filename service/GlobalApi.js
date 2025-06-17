@@ -26,6 +26,10 @@ const SaveScheduleControls = (data) => axiosClient.post("/control/save", data);
 const SaveAllScheduleControls = (data) =>
   axiosClient.post("/control/save_all", data);
 
+const GetSettings = () => axiosClient.get("/settings");
+
+const SaveSettings = (data) => axiosClient.post("/settings", data);
+
 export default {
   GetScheduleList,
   SaveSchedule,
@@ -34,4 +38,6 @@ export default {
   GetSchedule,
   SaveScheduleControls,
   SaveAllScheduleControls,
+  GetSettings,
+  SaveSettings,
 };
